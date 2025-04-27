@@ -1,0 +1,28 @@
+buildscript {
+    ext.kotlin_version = '2.0.20'  // Sesuaikan dengan Gradle 8.4
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1' // Sesuaikan dengan Gradle terbaru
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.20"
+        classpath 'com.google.gms:google-services:4.4.2' // Plugin Firebase Google Services
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
