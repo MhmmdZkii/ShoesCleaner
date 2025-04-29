@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_project_test/pesanan_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+
+// Asumsi halaman lain sudah ada
 import 'kupondiskon_page.dart';
-import 'profile_page.dart'; // pastikan path-nya sesuai
-import 'pesanansayapage.dart'; // pastikan path-nya sesuai
+import 'pesanansayapage.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   final String token;
@@ -15,6 +20,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  File? _image;
+  String? _detectionResult;
+  bool _isLoading = false;
+  final ImagePicker _picker = ImagePicker();
 
   final List<Map<String, String>> kuponList = [
     {
@@ -33,23 +42,19 @@ class _HomePageState extends State<HomePage> {
       _selectedIndex = index;
     });
     if (index == 0) {
-      // ✅ Tetap di halaman Home
+      // Tetap di halaman Home
     } else if (index == 1) {
       Navigator.push(
           context,
           MaterialPageRoute(
               builder: (context) => KuponDiskonPage(token: widget.token)));
     } else if (index == 2) {
-      // ✅ Pindah ke halaman Keranjang (PesananPage)
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => BuatPesananPage()));
+      // Ganti dengan halaman yang sesuai, misalnya BuatPesananPage
+      // Navigator.push(context, MaterialPageRoute(builder: (context) => BuatPesananPage()));
     } else if (index == 3) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => PesananSayaPage())); // 🆕 Ini dia!
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) => PesananSayaPage()));
     } else if (index == 4) {
-      // ✅ Navigasi ke halaman profil
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -59,7 +64,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  /// ✅ Pindahkan fungsi ini keluar dari `onPressed`
   void _showLogoutConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -70,14 +74,14 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // ✅ Tutup dialog tanpa logout
+                Navigator.of(context).pop();
               },
               child: Text("Tidak", style: TextStyle(color: Colors.grey)),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // ✅ Tutup dialog
-                Navigator.pushReplacementNamed(context, "/"); // ✅ Logout
+                Navigator.of(context).pop();
+                Navigator.pushReplacementNamed(context, "/");
               },
               child: Text("Ya", style: TextStyle(color: Colors.red)),
             ),
@@ -87,9 +91,56 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _image = File(image.path);
+        _detectionResult = null;
+      });
+    }
+  }
+
+  Future<void> sendImage(File image) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('http://192.168.100.14:5000/api/detect')); // URL server Anda
+      request.files.add(await http.MultipartFile.fromPath('image', image.path));
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        var result = jsonDecode(await response.stream.bytesToString());
+        setState(() {
+          _detectionResult = result['detection'].toString();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _detectionResult = 'Gagal mengirim gambar: ${response.statusCode}';
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengirim gambar')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _detectionResult = 'Error: $e';
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    String name = widget.token; // Tetap menggunakan variabel ini untuk header
+    String name = widget.token;
 
     return Scaffold(
       appBar: AppBar(
@@ -100,7 +151,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: Icon(Icons.logout, color: Colors.black),
             onPressed: () {
-              _showLogoutConfirmationDialog(context); // ✅ Tidak error lagi
+              _showLogoutConfirmationDialog(context);
             },
           ),
           IconButton(
@@ -115,14 +166,11 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Ucapan (TETAP SESUAI PERMINTAAN)
               Text(
                 "Halo, $name!",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-
-              // Banner Promo
               Container(
                 width: double.infinity,
                 height: 150,
@@ -136,7 +184,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               SizedBox(height: 20),
-
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -154,10 +201,58 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(8)),
                 ),
               ),
-
               SizedBox(height: 20),
-
-              // Menu Kupon & Promosi
+              Text(
+                "yuk pilih layanan yg cocok untuk sepatumu!",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: Icon(Icons.image),
+                    label: Text("Pilih Foto"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  if (_image != null)
+                    ElevatedButton.icon(
+                      onPressed: () => sendImage(_image!),
+                      icon: Icon(Icons.send),
+                      label: Text("Kirim Foto"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 10),
+              if (_image != null)
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    image: DecorationImage(
+                      image: FileImage(_image!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              SizedBox(height: 10),
+              if (_isLoading)
+                CircularProgressIndicator()
+              else if (_detectionResult != null)
+                Text(
+                  "Hasil Deteksi: $_detectionResult",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -166,12 +261,9 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               SizedBox(height: 20),
-
-              // List Kupon
               Text("Kupon",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
-
               ListView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
