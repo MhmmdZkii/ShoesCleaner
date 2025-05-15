@@ -166,10 +166,10 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Halo, $name!",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              // Text(
+              //   "Halo, $name!",
+              //   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              // ),
               SizedBox(height: 10),
               Container(
                 width: double.infinity,

@@ -9,12 +9,17 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  path_provider: ^2.1.1
+  url_launcher: ^6.2.5
   http: ^1.2.0
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
   shared_preferences: ^2.2.2
+  webview_flutter: ^4.4.0
+  webview_flutter_android: ^4.4.2
   intl: ^0.18.1
   mime: ^1.0.4
+
 
 dev_dependencies:
   flutter_test:
